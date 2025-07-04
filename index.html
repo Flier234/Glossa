@@ -236,10 +236,11 @@
         const languageList = { 'es': 'Spanish', 'fr': 'French', 'de': 'German', 'it': 'Italian', 'pt': 'Portuguese', 'ru': 'Russian', 'ja': 'Japanese', 'zh': 'Chinese', 'ko': 'Korean', 'ar': 'Arabic', 'hi': 'Hindi', 'el': 'Greek', 'la': 'Latin', 'nl': 'Dutch', 'sv': 'Swedish' };
         
         // --- IMPORTANT FIX FOR GITHUB PAGES & MOBILE ---
-        // Wikipedia's API usage policy requires a custom User-Agent header.
+        // Wikipedia's API usage policy requires a custom User-Agent.
+        // 'Api-User-Agent' is the correct header for client-side applications.
         // PLEASE UPDATE the URL and email to your own project details.
         const WIKI_HEADERS = {
-            'User-Agent': 'Glossa/1.0 (https://your-github-username.github.io/your-repo-name/; your-email@example.com)'
+            'Api-User-Agent': 'Glossa/1.0 (https://your-github-username.github.io/your-repo-name/; your-email@example.com)'
         };
 
         const LIBRETRANSLATE_BACKUPS = ['https://translate.argosopentech.com/translate', 'https://libretranslate.de/translate', 'https://libretranslate.com/translate'];
