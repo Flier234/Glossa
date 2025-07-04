@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glossa - Immersive Reading</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+
+    <style>
+        :root { 
+            --ease-out-bouncy: cubic-bezier(0.34, 1.56, 0.64, 1);
+            --bouncy-transition: all 0.25s var(--ease-out-bouncy);
+        }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #111111;
+            color: #f8fafc;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.03'%3E%3Cpath d='M0 38.59l2.83-2.83 1.41 1.41L1.41 40H0v-1.41zM0 1.4l2.83 2.83 1.41-1.41L1.41 0H0v1.41zM38.59 40l-2.83-2.83 1.41-1.41L40 38.59V40h-1.41zM40 1.41l-2.83 2.83-1.41-1.41L38.59 0H40v1.41zM20 18.6l2.83-2.83 1.41 1.41L21.41 20l2.83 2.83-1.41 1.41L20 21.41l-2.83 2.83-1.41-1.41L18.59 20l-2.83-2.83 1.41-1.41L20 18.59z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            -webkit-tap-highlight-color: transparent; 
+            min-height: 100vh;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+        }
+        #backdrop-image-container { position: fixed; inset: 0; z-index: -2; }
+        #backdrop-image { width: 100%; height: 100%; object-fit: cover; transform: scale(1.1); filter: blur(40px) brightness(0.7); opacity: 0; transition: opacity 0.75s ease-in-out; }
+        
+        body::before, body::after { display: none; }
+        
+        .glass-pane {
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            backdrop-filter: blur(32px) saturate(150%);
+            -webkit-backdrop-filter: blur(32px) saturate(150%);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.2), 0 20px 50px rgba(8, 7, 16, 0.7);
+        }
+        .glass-inset {
+            background-color: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.5);
+            border-radius: 0.5rem; padding: 0.5rem 0.75rem; color: #e2e8f0; transition: var(--bouncy-transition);
+        }
+        .glass-inset:focus-within, .glass-inset.active {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.7);
+            background-color: rgba(0, 0, 0, 0.1);
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 255, 255, 0.2);
+        }
+        .glass-button {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #f8fafc; font-weight: 500; padding: 0.75rem 1rem; border-radius: 0.5rem; transition: var(--bouncy-transition);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .glass-button:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .glass-button:active {
+            transform: scale(0.95) translateY(0);
+            background-color: rgba(255, 255, 255, 0.1);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.3);
+        }
+        #custom-select-trigger { padding: 0.5rem 0.75rem; width: 160px; }
+        #custom-select-options { max-height: 250px; overflow-y: auto; opacity: 0; transform: scale(0.95) translateY(-10px); transition: var(--bouncy-transition); pointer-events: none; }
+        #custom-select-options.active { opacity: 1; transform: scale(1) translateY(0); pointer-events: auto; }
+        .custom-select-option { padding: 0.5rem 0.75rem; cursor: pointer; border-radius: 0.375rem; transition: background-color 0.15s ease-out; }
+        .custom-select-option:hover { background-color: rgba(255, 255, 255, 0.1); }
+        #article-content { position: relative; }
+        #article-generated-content { position: relative; z-index: 10; }
+        .material-symbols-outlined { text-shadow: 0 1px 2px rgba(0,0,0,0.5); font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24; vertical-align: middle; transition: transform 0.2s ease; }
+        .word { position: relative; z-index: 2; padding: 2px 1px; border-radius: 4px; display: inline; cursor: pointer; }
+        .word.saved { background-color: rgba(255, 255, 255, 0.2); font-weight: 500; }
+        #selection-highlighter { position: absolute; z-index: 1; background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05)); backdrop-filter: blur(4px) saturate(120%); -webkit-backdrop-filter: blur(4px) saturate(120%); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 8px; pointer-events: none; transition: var(--bouncy-transition); opacity: 0; transform-origin: center center; }
+        #selection-popup { transition: var(--bouncy-transition); transform-origin: bottom center; opacity: 0; transform: scale(0.9) translateY(10px); }
+        #selection-popup.popup-active { opacity: 1; transform: scale(1) translateY(0); }
+        .popup-button { padding: 6px 10px !important; }
+        #vocab-count { background-color: rgba(255, 255, 255, 0.2); border-color: rgba(255, 255, 255, 0.4); }
+        #vocab-count.pop-animation { animation: pop 0.4s var(--ease-out-bouncy); }
+        @keyframes pop { 50% { transform: scale(1.4); } }
+        .modal { transition: opacity 0.25s ease-out, transform 0.25s var(--ease-out-bouncy); opacity: 0; transform: scale(0.95); }
+        .modal.active { opacity: 1; transform: scale(1); }
+        #floating-header, #floating-footer { transition: transform 0.5s var(--ease-out-bouncy); }
+        .loader { border: 4px solid #475569; border-top: 4px solid #ffffff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        #modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(12px);
+        }
+
+        .flashcard { perspective: 1000px; background-color: transparent; width: 100%; height: 150px; }
+        .flashcard-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
+        .flashcard.is-flipped .flashcard-inner { transform: rotateY(180deg); }
+        .flashcard-front, .flashcard-back { 
+            position: absolute; width: 100%; height: 100%;
+            -webkit-backface-visibility: hidden; backface-visibility: hidden; 
+            display: flex; align-items: center; justify-content: center; 
+            padding: 20px; text-align: center; border-radius: 0.5rem; 
+            background-color: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.4);
+        }
+        .flashcard-back { transform: rotateY(180deg); }
+        .history-item { cursor: pointer; transition: background-color 0.2s; padding: 0.5rem; border-radius: 0.375rem; }
+        .history-item:hover { background-color: rgba(255, 255, 255, 0.1); }
+    </style>
+</head>
+<body>
+    <div id="backdrop-image-container"><img id="backdrop-image" src="" alt=""></div>
+
+    <header id="floating-header" class="fixed top-4 left-4 right-4 z-40 p-3 glass-pane rounded-2xl">
+        <div class="max-w-4xl mx-auto">
+            <div class="flex flex-col sm:flex-row gap-4 items-center">
+                <h1 class="text-2xl font-bold hidden sm:block text-white">Glossa</h1>
+                <div id="custom-select-container" class="relative order-first sm:order-none">
+                    <button id="custom-select-trigger" class="glass-inset w-full sm:w-auto flex justify-between items-center text-left">
+                        <span id="custom-select-value"></span>
+                        <span id="custom-select-arrow" class="material-symbols-outlined">expand_more</span>
+                    </button>
+                    <div id="custom-select-options" class="hidden absolute top-full mt-2 w-full glass-pane rounded-lg p-1 z-10"></div>
+                </div>
+                <div class="flex gap-2 w-full sm:ml-auto">
+                    <input type="text" id="search-input" placeholder="Search topics..." class="w-full glass-inset">
+                    <button id="search-btn" class="glass-button px-3"><span class="material-symbols-outlined">search</span></button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content" class="relative pt-40 pb-40 px-4">
+        <div class="max-w-4xl mx-auto">
+            <div id="error-display" class="hidden bg-red-900/80 border-red-600 border text-red-200 px-4 py-3 rounded-lg my-4" role="alert"><strong id="error-title" class="font-bold">Error!</strong><span id="error-message" class="block sm:inline">Something went wrong.</span></div>
+            <div id="loader" class="flex justify-center items-center h-64"><div class="loader"></div></div>
+            <div id="article-container" class="hidden glass-pane p-6 md:p-8 rounded-2xl">
+                <h2 id="article-title" class="text-3xl md:text-4xl font-bold mb-4 text-white"></h2>
+                <div class="w-full h-48 md:h-72 mb-6 bg-black/30 rounded-lg flex items-center justify-center overflow-hidden"><img id="article-image" src="" alt="" class="hidden w-full h-full object-contain"></div>
+                <div id="article-content" class="text-lg md:text-xl leading-relaxed">
+                    <div id="selection-highlighter"></div>
+                    <div id="article-generated-content"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer id="floating-footer" class="fixed bottom-4 left-4 right-4 z-40 p-3 glass-pane rounded-2xl">
+        <div class="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <button id="next-article-btn" class="sm:col-span-1 w-full glass-button flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined !text-xl">arrow_forward</span>
+                <span>Next Article</span>
+            </button>
+            <button id="history-btn" class="sm:col-span-1 w-full glass-button flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined !text-xl">history</span>
+                <span>History</span>
+            </button>
+            <button id="flashcard-btn" class="sm:col-span-1 w-full glass-button flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined !text-xl">style</span>
+                <span>Flashcards</span>
+            </button>
+            <button id="vocab-list-btn" class="relative sm:col-span-1 w-full glass-button flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined !text-xl">menu_book</span>
+                <span>Vocab</span> 
+                <span id="vocab-count" class="absolute -top-2 -right-2 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center border-2 border-slate-900 transition-colors">0</span>
+            </button>
+        </div>
+    </footer>
+    
+    <div id="selection-popup" class="hidden absolute z-50 rounded-lg flex items-center p-1 gap-1 glass-pane">
+        <button id="popup-translate-btn" class="glass-button popup-button"><span class="material-symbols-outlined !text-base">translate</span></button>
+        <button id="popup-save-btn" class="glass-button popup-button"><span class="material-symbols-outlined !text-base">bookmark</span></button>
+        <button id="popup-copy-btn" class="glass-button popup-button"><span class="material-symbols-outlined !text-base">content_copy</span></button>
+    </div>
+    
+    <div id="modal-backdrop" class="hidden fixed inset-0 flex items-center justify-center p-4 z-50 transition-opacity duration-300" style="opacity: 0;">
+        <div id="translation-modal" class="hidden modal glass-pane rounded-2xl shadow-xl p-6 w-full max-w-md text-center"></div>
+        
+        <div id="vocab-list-modal" class="hidden modal glass-pane rounded-2xl shadow-xl p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold">Today's Vocab</h3><button class="modal-close-btn text-gray-300 hover:text-white text-2xl leading-none">×</button></div>
+            <div id="vocab-list-container" class="max-h-64 overflow-y-auto pr-2"></div>
+            <p class="text-xs text-gray-500 mt-4">This list clears 24 hours after the first word is saved.</p>
+        </div>
+
+        <div id="history-modal" class="hidden modal glass-pane rounded-2xl shadow-xl p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold">Recent Articles</h3><button class="modal-close-btn text-gray-300 hover:text-white text-2xl leading-none">×</button></div>
+            <div id="history-list-container" class="max-h-64 overflow-y-auto pr-2"></div>
+            <p class="text-xs text-gray-500 mt-4">History is cleared after 24 hours.</p>
+        </div>
+        
+        <div id="flashcard-modal" class="hidden modal glass-pane p-6 w-full max-w-md">
+             <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Flashcards</h3>
+                <button class="modal-close-btn text-gray-300 hover:text-white text-2xl leading-none">×</button>
+            </div>
+             <div id="flashcard-content" class="min-h-[220px]">
+                <div class="flashcard" id="flashcard" style="height: 180px;">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front"><p id="flashcard-front-text" class="text-3xl font-bold"></p></div>
+                        <div class="flashcard-back"><p id="flashcard-back-text" class="text-2xl"></p></div>
+                    </div>
+                </div>
+                <div id="flashcard-empty-state" class="hidden text-center text-gray-400 py-10">
+                    <p>No vocabulary saved yet.</p>
+                    <p class="text-sm">Select text in an article to save it.</p>
+                </div>
+            </div>
+             <div class="flex justify-between items-center mt-4">
+                <button id="flashcard-prev-btn" class="glass-button" disabled>< Prev</button>
+                <div class="text-sm text-gray-400" id="flashcard-counter"></div>
+                <button id="flashcard-flip-btn" class="glass-button" disabled>Flip</button>
+                <button id="flashcard-next-btn" class="glass-button" disabled>Next ></button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const UI = {
+            backdropImage: document.getElementById('backdrop-image'),
+            selectionHighlighter: document.getElementById('selection-highlighter'),
+            articleGeneratedContent: document.getElementById('article-generated-content'),
+            floatingHeader: document.getElementById('floating-header'), floatingFooter: document.getElementById('floating-footer'),
+            searchInput: document.getElementById('search-input'), searchBtn: document.getElementById('search-btn'), nextArticleBtn: document.getElementById('next-article-btn'), vocabListBtn: document.getElementById('vocab-list-btn'), flashcardBtn: document.getElementById('flashcard-btn'), historyBtn: document.getElementById('history-btn'), loader: document.getElementById('loader'), articleContainer: document.getElementById('article-container'), articleTitle: document.getElementById('article-title'), articleImage: document.getElementById('article-image'), articleContent: document.getElementById('article-content'), errorDisplay: document.getElementById('error-display'), errorTitle: document.getElementById('error-title'), errorMessage: document.getElementById('error-message'), vocabCount: document.getElementById('vocab-count'), mainContent: document.getElementById('main-content'), selectionPopup: document.getElementById('selection-popup'), popupTranslateBtn: document.getElementById('popup-translate-btn'), popupSaveBtn: document.getElementById('popup-save-btn'), popupCopyBtn: document.getElementById('popup-copy-btn'), modalBackdrop: document.getElementById('modal-backdrop'), translationModal: document.getElementById('translation-modal'), vocabListModal: document.getElementById('vocab-list-modal'), vocabListContainer: document.getElementById('vocab-list-container'), historyModal: document.getElementById('history-modal'), historyListContainer: document.getElementById('history-list-container'), flashcardModal: document.getElementById('flashcard-modal'), flashcard: document.getElementById('flashcard'), flashcardContent: document.getElementById('flashcard-content'), flashcardEmptyState: document.getElementById('flashcard-empty-state'), flashcardFrontText: document.getElementById('flashcard-front-text'), flashcardBackText: document.getElementById('flashcard-back-text'), flashcardCounter: document.getElementById('flashcard-counter'), flashcardFlipBtn: document.getElementById('flashcard-flip-btn'), flashcardPrevBtn: document.getElementById('flashcard-prev-btn'), flashcardNextBtn: document.getElementById('flashcard-next-btn'),
+            customSelect: { container: document.getElementById('custom-select-container'), trigger: document.getElementById('custom-select-trigger'), value: document.getElementById('custom-select-value'), options: document.getElementById('custom-select-options'), arrow: document.getElementById('custom-select-arrow'), }
+        };
+
+        let state = {
+            currentLanguage: 'es', vocabData: {}, searchResults: [], searchIndex: 0, currentSearchTerm: '', flashcardIndex: 0,
+            isSelecting: false, allWordSpans: [], lastScrollY: window.scrollY, selectionStartNode: null, selectionEndNode: null,
+        };
+
+        const languageList = { 'es': 'Spanish', 'fr': 'French', 'de': 'German', 'it': 'Italian', 'pt': 'Portuguese', 'ru': 'Russian', 'ja': 'Japanese', 'zh': 'Chinese', 'ko': 'Korean', 'ar': 'Arabic', 'hi': 'Hindi', 'el': 'Greek', 'la': 'Latin', 'nl': 'Dutch', 'sv': 'Swedish' };
+        
+        // --- IMPORTANT FIX FOR GITHUB PAGES & MOBILE ---
+        // Wikipedia's API usage policy requires a custom User-Agent header.
+        // PLEASE UPDATE the URL and email to your own project details.
+        const WIKI_HEADERS = {
+            'User-Agent': 'Glossa/1.0 (https://your-github-username.github.io/your-repo-name/; your-email@example.com)'
+        };
+
+        const LIBRETRANSLATE_BACKUPS = ['https://translate.argosopentech.com/translate', 'https://libretranslate.de/translate', 'https://libretranslate.com/translate'];
+        const WIKI_STOP_HEADINGS = ['References', 'See also', 'External links', 'Notes', 'Sources', 'Bibliography', 'Παραπομπές', 'Εξωτερικοί σύνδεσμοι', 'Δείτε επίσης', 'Βιβλιογραφία', 'Referencias', 'Véase también', 'Enlaces externos', 'Bibliografía', 'Einzelnachweise', 'Siehe auch', 'Weblinks', 'Literatur', 'Riferimenti', 'Voci correlate', 'Collegamenti esterni', 'Bibliografia', 'Références', 'Voir aussi', 'Notes et références', 'Liens externes', 'Bibliographie', 'Referências', 'Ver também', 'Ligações externas', 'Bibliografia', '出典', '脚注', '関連項目', '外部リンク', '参考文献'];
+
+        const setupCustomSelect = () => { const select = UI.customSelect; select.options.innerHTML = Object.entries(languageList).map(([code, name]) => `<div class="custom-select-option" data-value="${code}">${name}</div>`).join(''); select.trigger.addEventListener('click', (e) => { e.stopPropagation(); const isActive = select.options.classList.toggle('active'); select.trigger.classList.toggle('active', isActive); select.arrow.style.transform = isActive ? 'rotate(180deg)' : 'rotate(0deg)'; if (isActive) { select.options.classList.remove('hidden'); } else { select.options.addEventListener('transitionend', () => select.options.classList.add('hidden'), { once: true }); } }); select.options.addEventListener('click', (e) => { const option = e.target.closest('.custom-select-option'); if (option) { const langCode = option.dataset.value; select.trigger.click(); if (state.currentLanguage !== langCode) { switchLanguage(langCode); localStorage.setItem('lang', state.currentLanguage); performSearch(); } } }); document.addEventListener('click', () => { if (select.options.classList.contains('active')) { select.trigger.click(); } }); };
+        
+        const prepareAndRenderArticle = (contentDOM, imageUrl) => {
+            UI.articleImage.src = imageUrl || '';
+            UI.articleImage.classList.toggle('hidden', !imageUrl);
+            UI.backdropImage.style.opacity = imageUrl ? 1 : 0;
+            if (imageUrl) UI.backdropImage.src = imageUrl;
+            const contentClone = contentDOM.cloneNode(true);
+            let stopIndex = -1; const allChildren = Array.from(contentClone.children);
+            for (let i = 0; i < allChildren.length; i++) { const headline = allChildren[i].querySelector('.mw-headline'); if (headline && WIKI_STOP_HEADINGS.map(h => h.toLowerCase()).includes(headline.textContent.trim().toLowerCase())) { stopIndex = i; break; } }
+            const mainContentChildren = stopIndex === -1 ? allChildren : allChildren.slice(0, stopIndex);
+            UI.articleGeneratedContent.innerHTML = '';
+            mainContentChildren.forEach(el => { const cleanEl = el.cloneNode(true); cleanEl.querySelectorAll('.mw-editsection, .reference, sup, table, .infobox, style').forEach(e => e.remove()); cleanEl.querySelectorAll('a').forEach(link => link.parentNode.replaceChild(document.createTextNode(link.textContent), link)); UI.articleGeneratedContent.appendChild(cleanEl); });
+            wrapTextNodes(); 
+            showLoader(false); 
+            window.scrollTo(0, 0);
+        };
+        
+        const wrapTextNodes = () => {
+            const allSavedWords = new Set((state.vocabData[state.currentLanguage] || []).flatMap(phrase => phrase.split(/\s+/)));
+            const walker = document.createTreeWalker(UI.articleGeneratedContent, NodeFilter.SHOW_TEXT, null, false);
+            let node; const textNodes = [];
+            while(node = walker.nextNode()) { textNodes.push(node); }
+            textNodes.forEach(node => { const parent = node.parentNode; if (!parent || parent.tagName === 'SPAN') return; const words = node.textContent.split(/(\s+)/); if (words.length <= 1 && words[0].trim() === '') return; const fragment = document.createDocumentFragment(); words.forEach(word => { const cleanWord = word.trim().toLowerCase(); if (cleanWord.length > 0) { const span = document.createElement('span'); span.textContent = word; span.className = 'word'; if (allSavedWords.has(cleanWord)) span.classList.add('saved'); fragment.appendChild(span); } else { fragment.appendChild(document.createTextNode(word)); } }); parent.replaceChild(fragment, node); });
+            state.allWordSpans = Array.from(UI.articleGeneratedContent.querySelectorAll('.word'));
+        };
+
+        const displayError = (title, message) => { UI.errorTitle.textContent = title; UI.errorMessage.textContent = message; UI.errorDisplay.classList.remove('hidden'); UI.loader.classList.add('hidden'); };
+        const clearError = () => UI.errorDisplay.classList.add('hidden');
+        const showLoader = (isLoading) => { UI.loader.style.display = isLoading ? 'flex' : 'none'; UI.articleContainer.style.display = isLoading ? 'none' : 'block'; };
+        const performSearch = async () => { clearError(); state.currentSearchTerm = UI.searchInput.value.trim(); state.searchResults = []; state.searchIndex = 0; if (!state.currentSearchTerm) { loadNextArticle(); return; } showLoader(true); const url = `https://${state.currentLanguage}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(state.currentSearchTerm)}&format=json&origin=*`; try { const res = await fetch(url, { headers: WIKI_HEADERS }); if (!res.ok) throw new Error(`API search failed: ${res.status}`); const data = await res.json(); if (!data.query || data.query.search.length === 0) throw new Error("No results found."); state.searchResults = data.query.search.map(item => item.title); loadNextArticle(); } catch (error) { displayError("Search Failed", error.message); showLoader(false); } };
+        const loadNextArticle = async () => { clearError(); showLoader(true); let titleToFetch; if (state.currentSearchTerm && state.searchResults.length > 0) { if (state.searchIndex >= state.searchResults.length) { displayError("End of Results", "You've viewed all search results."); showLoader(false); return; } titleToFetch = state.searchResults[state.searchIndex]; state.searchIndex++; } else { try { const randomUrl = `https://${state.currentLanguage}.wikipedia.org/api/rest_v1/page/random/summary`; const res = await fetch(randomUrl, { headers: WIKI_HEADERS }); if (!res.ok) throw new Error('Could not get a random article.'); titleToFetch = (await res.json()).title; } catch (error) { displayError('Failed to Load', error.message); showLoader(false); return; } } fetchArticleContent(titleToFetch); };
+        const fetchArticleContent = async (title) => { const encodedTitle = encodeURIComponent(title); const summaryUrl = `https://${state.currentLanguage}.wikipedia.org/api/rest_v1/page/summary/${encodedTitle}`; const htmlUrl = `https://${state.currentLanguage}.wikipedia.org/api/rest_v1/page/html/${encodedTitle}`; try { const [summaryRes, htmlRes] = await Promise.all([fetch(summaryUrl, { headers: WIKI_HEADERS }), fetch(htmlUrl, { headers: WIKI_HEADERS })]); if (!summaryRes.ok || !htmlRes.ok) throw new Error(`API fetch failed (Summary: ${summaryRes.status}, HTML: ${htmlRes.status})`); const summaryData = await summaryRes.json(); const htmlText = await htmlRes.text(); const doc = new DOMParser().parseFromString(htmlText, 'text/html'); const contentDOM = doc.querySelector('.mw-parser-output'); if (!contentDOM) throw new Error("Could not parse article content."); UI.articleTitle.textContent = title; addArticleToHistory(title, state.currentLanguage); prepareAndRenderArticle(contentDOM, summaryData.thumbnail?.source); } catch (error) { displayError("Article Load Failed", error.message); showLoader(false); } };
+        const clearHighlights = () => { state.selectionStartNode = null; state.selectionEndNode = null; UI.selectionHighlighter.style.opacity = '0'; };
+        const showSelectionPopup = (text) => { const rect = UI.selectionHighlighter.getBoundingClientRect(); UI.selectionPopup.style.left = `${window.scrollX + rect.left + rect.width / 2 - UI.selectionPopup.offsetWidth / 2}px`; UI.selectionPopup.style.top = `${window.scrollY + rect.top - UI.selectionPopup.offsetHeight - 10}px`; UI.selectionPopup.classList.remove('hidden'); requestAnimationFrame(() => { UI.selectionPopup.classList.add('popup-active'); }); const hideAndAction = (action) => { UI.selectionPopup.classList.remove('popup-active'); action(); }; UI.popupTranslateBtn.onclick = (e) => { e.stopPropagation(); hideAndAction(() => showTranslationModal(text)); }; UI.popupSaveBtn.onclick = (e) => { e.stopPropagation(); hideAndAction(() => addVocabWord(text)); }; UI.popupCopyBtn.onclick = (e) => { e.stopPropagation(); navigator.clipboard.writeText(text).then(() => { UI.popupCopyBtn.querySelector('span').textContent = 'done'; setTimeout(() => { UI.popupCopyBtn.querySelector('span').textContent = 'content_copy'; hideAndAction(() => {}); }, 1000); }); }; };
+        const handleInteractionEnd = () => { if (!state.isSelecting || !state.selectionStartNode) return; state.isSelecting = false; const selectedText = getSelectedText(); if (selectedText) { showSelectionPopup(selectedText); } };
+        const getSelectedText = () => { if (!state.selectionStartNode) return ''; const startIndex = state.allWordSpans.indexOf(state.selectionStartNode); const endIndex = state.allWordSpans.indexOf(state.selectionEndNode || state.selectionStartNode); const [min, max] = [startIndex, endIndex].sort((a, b) => a - b); return state.allWordSpans.slice(min, max + 1).map(s => s.textContent).join(' ').trim(); };
+        const startSelection = (target) => { if (target.classList.contains('word')) { state.isSelecting = true; hideSelectionPopup(); state.selectionStartNode = target; state.selectionEndNode = target; updateSelection(target); } };
+        const updateSelection = (target) => { if (!state.isSelecting || !target.classList.contains('word')) return; state.selectionEndNode = target; const startIndex = state.allWordSpans.indexOf(state.selectionStartNode); const endIndex = state.allWordSpans.indexOf(state.selectionEndNode); if (startIndex === -1 || endIndex === -1) return; const [min, max] = [startIndex, endIndex].sort((a,b) => a - b); const selectedSpans = state.allWordSpans.slice(min, max + 1); let minX = Infinity, minY = Infinity, maxX = 0, maxY = 0; selectedSpans.forEach(span => { const rect = span.getBoundingClientRect(); minX = Math.min(minX, rect.left); minY = Math.min(minY, rect.top); maxX = Math.max(maxX, rect.right); maxY = Math.max(maxY, rect.bottom); }); const contentRect = UI.articleGeneratedContent.getBoundingClientRect(); const highlighter = UI.selectionHighlighter; highlighter.style.opacity = '1'; highlighter.style.left = `${minX - contentRect.left}px`; highlighter.style.top = `${minY - contentRect.top}px`; highlighter.style.width = `${maxX - minX}px`; highlighter.style.height = `${maxY - minY}px`; const width = maxX - minX; const squish = Math.max(0.9, 1 - (width / 4000)); highlighter.style.transform = `scaleY(${squish})`; };
+        const hideSelectionPopup = () => { UI.selectionPopup.classList.remove('popup-active'); };
+        UI.mainContent.addEventListener('mousedown', (e) => { e.preventDefault(); startSelection(e.target); });
+        UI.mainContent.addEventListener('mouseover', (e) => updateSelection(e.target));
+        document.addEventListener('mouseup', () => { if (state.isSelecting) handleInteractionEnd(); });
+        UI.mainContent.addEventListener('touchstart', (e) => { startSelection(e.target); }, { passive: true });
+        UI.mainContent.addEventListener('touchmove', (e) => { if (state.isSelecting) { e.preventDefault(); const touch = e.touches[0]; const element = document.elementFromPoint(touch.clientX, touch.clientY); if (element) updateSelection(element); } }, { passive: false }); 
+        document.addEventListener('touchend', () => { if (state.isSelecting) handleInteractionEnd(); });
+        document.addEventListener('mousedown', (e) => { if (!e.target.closest('#article-content') && !e.target.closest('#selection-popup') && !e.target.closest('#custom-select-container')) { hideSelectionPopup(); clearHighlights(); } });
+        window.addEventListener('scroll', () => { const currentScrollY = window.scrollY; if (currentScrollY > state.lastScrollY && currentScrollY > 150) { UI.floatingHeader.style.transform = 'translateY(-120%)'; UI.floatingFooter.style.transform = 'translateY(120%)'; } else { UI.floatingHeader.style.transform = 'translateY(0)'; UI.floatingFooter.style.transform = 'translateY(0)'; } state.lastScrollY = currentScrollY <= 0 ? 0 : currentScrollY; });
+        
+        const openModal = (modalElement) => { UI.modalBackdrop.classList.remove('hidden'); requestAnimationFrame(() => { UI.modalBackdrop.style.opacity = 1; modalElement.classList.remove('hidden'); modalElement.classList.add('active'); }); };
+        const closeModal = () => { const activeModal = document.querySelector('.modal.active'); if (activeModal) activeModal.classList.remove('active'); UI.modalBackdrop.style.opacity = 0; UI.modalBackdrop.addEventListener('transitionend', () => { UI.modalBackdrop.classList.add('hidden'); document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden')); }, { once: true }); };
+        UI.modalBackdrop.addEventListener('click', (e) => { if (e.target === UI.modalBackdrop) closeModal(); });
+        document.querySelectorAll('.modal-close-btn').forEach(btn => btn.addEventListener('click', closeModal));
+
+        const showTranslationModal = async (text) => {
+            UI.translationModal.innerHTML = `<p class="text-lg font-semibold text-gray-300 mb-2 break-words">${text}</p><div class="flex justify-center items-center h-12"><div class="loader"></div></div><p class="text-2xl font-bold text-white"></p><p class="hidden text-red-400"></p><button class="modal-close-btn mt-6 glass-button py-2 px-6">Close</button>`;
+            UI.translationModal.querySelector('.modal-close-btn').onclick = closeModal;
+            openModal(UI.translationModal);
+            const loader = UI.translationModal.querySelector('.loader').parentNode; const resultEl = UI.translationModal.querySelector('.text-2xl'); const errorEl = UI.translationModal.querySelector('.text-red-400');
+            const translatedText = await fetchTranslation(text);
+            loader.style.display = 'none';
+            if (translatedText) { resultEl.textContent = translatedText; } else { errorEl.textContent = 'Translation failed.'; errorEl.classList.remove('hidden'); }
+        };
+
+        const fetchTranslation = async (text) => { try { const myMemoryUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${state.currentLanguage}|en`; const res = await fetch(myMemoryUrl); const data = await res.json(); if (data.responseData && data.responseData.translatedText) return data.responseData.translatedText; } catch (e) { /* Fallback */ } for (const url of LIBRETRANSLATE_BACKUPS) { try { const res = await fetch(url, { method: 'POST', body: JSON.stringify({ q: text, source: state.currentLanguage, target: 'en', format: 'text' }), headers: { 'Content-Type': 'application/json' } }); if (!res.ok) continue; const data = await res.json(); if (data.translatedText) return data.translatedText; } catch (error) { continue; } } return null; };
+        
+        UI.vocabListBtn.addEventListener('click', () => { openModal(UI.vocabListModal); renderVocabList(); });
+        const renderVocabList = () => { UI.vocabListContainer.innerHTML = (state.vocabData[state.currentLanguage] || []).length === 0 ? '<p class="text-gray-400">Your list is empty.</p>' : `<ul class="space-y-2">${(state.vocabData[state.currentLanguage] || []).map(word => `<li class="flex justify-between items-center text-lg capitalize"><span>${word}</span><button data-word="${word}" class="remove-vocab-btn text-red-400 hover:text-red-300 text-2xl leading-none">×</button></li>`).join('')}</ul>`; UI.vocabListContainer.addEventListener('click', (e) => { if (e.target.matches('.remove-vocab-btn')) { removeVocabWord(e.target.dataset.word); renderVocabList(); } }); };
+        const removeVocabWord = (wordToRemove) => { const cleanedWordToRemove = wordToRemove.toLowerCase(); let currentVocab = state.vocabData[state.currentLanguage] || []; state.vocabData[state.currentLanguage] = currentVocab.filter(v => v !== cleanedWordToRemove); const remainingSavedWords = new Set((state.vocabData[state.currentLanguage] || []).flatMap(phrase => phrase.split(/\s+/))); const wordsInRemovedPhrase = cleanedWordToRemove.split(/\s+/); wordsInRemovedPhrase.forEach(word => { if (!remainingSavedWords.has(word)) { UI.articleGeneratedContent.querySelectorAll('.word.saved').forEach(span => { if (span.textContent.trim().toLowerCase() === word) span.classList.remove('saved'); }); } }); saveData(); updateVocabCount(); };
+
+        UI.historyBtn.addEventListener('click', () => { openModal(UI.historyModal); renderHistoryList(); });
+        const renderHistoryList = () => { const history = getHistory(); UI.historyListContainer.innerHTML = history.length === 0 ? '<p class="text-gray-400">No recent articles.</p>' : `<ul class="space-y-1">${history.map(item => `<li class="history-item" data-title="${item.title}" data-lang="${item.lang}"><span class="font-bold">${item.title}</span><span class="text-xs text-gray-400 ml-2 uppercase">${item.lang}</span></li>`).join('')}</ul>`; UI.historyListContainer.addEventListener('click', (e) => { const item = e.target.closest('.history-item'); if (item) { closeModal(); const { title, lang } = item.dataset; switchLanguage(lang); showLoader(true); fetchArticleContent(title); } }); };
+
+        UI.flashcardBtn.addEventListener('click', () => { openModal(UI.flashcardModal); updateFlashcardView(); });
+        
+        const updateFlashcardView = () => {
+            UI.flashcard.classList.remove('is-flipped');
+            const currentVocab = state.vocabData[state.currentLanguage] || [];
+            const hasVocab = currentVocab.length > 0;
+            
+            UI.flashcardContent.style.display = hasVocab ? 'block' : 'none';
+            UI.flashcardEmptyState.style.display = hasVocab ? 'none' : 'flex';
+
+            if (!hasVocab) {
+                 UI.flashcardEmptyState.classList.remove('hidden');
+                 UI.flashcardContent.classList.add('hidden');
+            } else {
+                 UI.flashcardEmptyState.classList.add('hidden');
+                 UI.flashcardContent.classList.remove('hidden');
+            }
+            
+            [UI.flashcardFlipBtn, UI.flashcardPrevBtn, UI.flashcardNextBtn].forEach(b => { b.disabled = !hasVocab; });
+            
+            if (hasVocab) {
+                UI.flashcardFrontText.textContent = currentVocab[state.flashcardIndex];
+                UI.flashcardBackText.textContent = '...';
+                UI.flashcardCounter.textContent = `${state.flashcardIndex + 1} / ${currentVocab.length}`;
+                UI.flashcardPrevBtn.disabled = state.flashcardIndex === 0;
+                UI.flashcardNextBtn.disabled = state.flashcardIndex === currentVocab.length - 1;
+            }
+        };
+
+        UI.flashcardFlipBtn.addEventListener('click', async () => { if (UI.flashcardFlipBtn.disabled) return; UI.flashcard.classList.toggle('is-flipped'); const currentWord = (state.vocabData[state.currentLanguage] || [])[state.flashcardIndex]; if (UI.flashcard.classList.contains('is-flipped') && UI.flashcardBackText.textContent === '...') { UI.flashcardBackText.textContent = "Translating..."; const translatedText = await fetchTranslation(currentWord); UI.flashcardBackText.textContent = translatedText || "Translation Failed"; } });
+        UI.flashcardNextBtn.addEventListener('click', () => { const vocab = state.vocabData[state.currentLanguage] || []; if (state.flashcardIndex < vocab.length - 1) { state.flashcardIndex++; updateFlashcardView(); } });
+        UI.flashcardPrevBtn.addEventListener('click', () => { if (state.flashcardIndex > 0) { state.flashcardIndex--; updateFlashcardView(); } });
+        
+        const switchLanguage = (langCode) => { state.currentLanguage = langCode; UI.customSelect.value.textContent = languageList[langCode] || 'Select Language'; updateVocabCount(); if (UI.articleGeneratedContent.innerHTML) wrapTextNodes(); };
+        const updateVocabCount = () => { const count = (state.vocabData[state.currentLanguage] || []).length; if (parseInt(UI.vocabCount.textContent, 10) !== count) { UI.vocabCount.classList.remove('pop-animation'); void UI.vocabCount.offsetWidth; UI.vocabCount.classList.add('pop-animation'); } UI.vocabCount.textContent = count; };
+        const addVocabWord = (wordToAdd) => { const cleanedWord = wordToAdd.trim().toLowerCase(); if (!cleanedWord) return; const currentVocab = state.vocabData[state.currentLanguage] || []; if (currentVocab.includes(cleanedWord)) { clearHighlights(); return; } currentVocab.push(cleanedWord); state.vocabData[state.currentLanguage] = currentVocab; const wordsInPhrase = new Set(cleanedWord.split(/\s+/)); UI.articleGeneratedContent.querySelectorAll('.word').forEach(span => { const spanText = span.textContent.trim().toLowerCase(); if (wordsInPhrase.has(spanText)) span.classList.add('saved'); }); clearHighlights(); saveData(); updateVocabCount(); };
+        const checkDataExpiry = () => { const timestamp = localStorage.getItem('lingoReadTimestamp'); if (timestamp && Date.now() - parseInt(timestamp, 10) > 24 * 60 * 60 * 1000) { localStorage.removeItem('lingoReadVocab'); localStorage.removeItem('lingoReadHistory'); localStorage.removeItem('lingoReadTimestamp'); state.vocabData = {}; } else { let history = getHistory(); const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000); localStorage.setItem('lingoReadHistory', JSON.stringify(history.filter(item => item.timestamp > oneDayAgo))); } };
+        const loadData = () => { state.vocabData = JSON.parse(localStorage.getItem('lingoReadVocab') || '{}'); updateVocabCount(); };
+        const saveData = () => { localStorage.setItem('lingoReadVocab', JSON.stringify(state.vocabData)); const hasAnyData = Object.values(state.vocabData).some(list => list.length > 0) || (getHistory().length > 0); if (!localStorage.getItem('lingoReadTimestamp') && hasAnyData) { localStorage.setItem('lingoReadTimestamp', Date.now().toString()); } else if (!hasAnyData) { localStorage.removeItem('lingoReadTimestamp'); } };
+        const getHistory = () => JSON.parse(localStorage.getItem('lingoReadHistory') || '[]');
+        const addArticleToHistory = (title, lang) => { let history = getHistory(); history = history.filter(item => item.title !== title || item.lang !== lang); history.unshift({ title, lang, timestamp: Date.now() }); localStorage.setItem('lingoReadHistory', JSON.stringify(history.slice(0, 50))); saveData(); };
+        UI.searchBtn.addEventListener('click', performSearch);
+        UI.searchInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') performSearch(); });
+        UI.nextArticleBtn.addEventListener('click', loadNextArticle);
+
+        const init = () => {
+            setupCustomSelect();
+            const savedLang = localStorage.getItem('lang') || 'es';
+            switchLanguage(savedLang); 
+            checkDataExpiry(); 
+            loadData(); 
+            loadNextArticle();
+        };
+        init();
+    });
+    </script>
+</body>
+</html>
