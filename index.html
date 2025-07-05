@@ -2,9 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Glossa - Immersive Reading</title>
     
+    <!-- PWA & Add to Home Screen Functionality -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#111111">
+    <link rel="manifest" href="data:application/manifest+json,{"name":"Glossa","short_name":"Glossa","start_url":".","display":"standalone","background_color":"#111111","theme_color":"#111111","description":"Immersive language learning through reading.","icons":[{"src":"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'%3E%3Ccircle cx='512' cy='512' r='512' fill='%232d3748'/%3E%3Cpath fill='%23e2e8f0' d='M512,128c124,0,224,100,224,224v128c0,44-36,80-80,80h-80V384c0-44-36-80-80-80s-80,36-80,80v256h160c124,0,224,100,224,224s-100,224-224,224S288,996,288,872c0-37,9-72,26-104h118c-12,25-18,53-18,80c0,53,43,96,96,96s96-43,96-96c0-44-36-80-80-80H352c-44,0-80-36-80-80V352c0-124,100-224,224-224Z'/%3E%3C/svg%3E","sizes":"192x192","type":"image/svg+xml"},{"src":"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'%3E%3Ccircle cx='512' cy='512' r='512' fill='%232d3748'/%3E%3Cpath fill='%23e2e8f0' d='M512,128c124,0,224,100,224,224v128c0,44-36,80-80,80h-80V384c0-44-36-80-80-80s-80,36-80,80v256h160c124,0,224,100,224,224s-100,224-224,224S288,996,288,872c0-37,9-72,26-104h118c-12,25-18,53-18,80c0,53,43,96,96,96s96-43,96-96c0-44-36-80-80-80H352c-44,0-80-36-80-80V352c0-124,100-224,224-224Z'/%3E%3C/svg%3E","sizes":"512x512","type":"image/svg+xml"}]}">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'%3E%3Ccircle cx='512' cy='512' r='512' fill='%232d3748'/%3E%3Cpath fill='%23e2e8f0' d='M512,128c124,0,224,100,224,224v128c0,44-36,80-80,80h-80V384c0-44-36-80-80-80s-80,36-80,80v256h160c124,0,224,100,224,224s-100,224-224,224S288,996,288,872c0-37,9-72,26-104h118c-12,25-18,53-18,80c0,53,43,96,96,96s96-43,96-96c0-44-36-80-80-80H352c-44,0-80-36-80-80V352c0-124,100-224,224-224Z'/%3E%3C/svg%3E">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'%3E%3Ccircle cx='512' cy='512' r='512' fill='%232d3748'/%3E%3Cpath fill='%23e2e8f0' d='M512,128c124,0,224,100,224,224v128c0,44-36,80-80,80h-80V384c0-44-36-80-80-80s-80,36-80,80v256h160c124,0,224,100,224,224s-100,224-224,224S288,996,288,872c0-37,9-72,26-104h118c-12,25-18,53-18,80c0,53,43,96,96,96s96-43,96-96c0-44-36-80-80-80H352c-44,0-80-36-80-80V352c0-124,100-224,224-224Z'/%3E%3C/svg%3E">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,10 +28,13 @@
             font-family: 'Inter', sans-serif; 
             background-color: #111111;
             color: #f8fafc;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.03'%3E%3Cpath d='M0 38.59l2.83-2.83 1.41 1.41L1.41 40H0v-1.41zM0 1.4l2.83 2.83 1.41-1.41L1.41 0H0v1.41zM38.59 40l-2.83-2.83 1.41-1.41L40 38.59V40h-1.41zM40 1.41l-2.83 2.83-1.41-1.41L38.59 0H40v1.41zM20 18.6l2.83-2.83 1.41 1.41L21.41 20l2.83 2.83-1.41 1.41L20 21.41l-2.83 2.83-1.41-1.41L18.59 20l-2.83-2.83 1.41-1.41L20 18.59z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
             -webkit-tap-highlight-color: transparent; 
             min-height: 100vh;
+            min-height: -webkit-fill-available; /* iOS full height fix */
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+        }
+        html {
+            min-height: -webkit-fill-available;
         }
         #backdrop-image-container { position: fixed; inset: 0; z-index: -2; }
         #backdrop-image { width: 100%; height: 100%; object-fit: cover; transform: scale(1.1); filter: blur(40px) brightness(0.7); opacity: 0; transition: opacity 0.75s ease-in-out; }
@@ -235,10 +246,6 @@
 
         const languageList = { 'es': 'Spanish', 'fr': 'French', 'de': 'German', 'it': 'Italian', 'pt': 'Portuguese', 'ru': 'Russian', 'ja': 'Japanese', 'zh': 'Chinese', 'ko': 'Korean', 'ar': 'Arabic', 'hi': 'Hindi', 'el': 'Greek', 'la': 'Latin', 'nl': 'Dutch', 'sv': 'Swedish' };
         
-        // --- IMPORTANT FIX FOR GITHUB PAGES & MOBILE ---
-        // Wikipedia's API usage policy requires a custom User-Agent.
-        // 'Api-User-Agent' is the correct header for client-side applications.
-        // PLEASE UPDATE the URL and email to your own project details.
         const WIKI_HEADERS = {
             'Api-User-Agent': 'Glossa/1.0 (https://your-github-username.github.io/your-repo-name/; your-email@example.com)'
         };
@@ -258,7 +265,18 @@
             for (let i = 0; i < allChildren.length; i++) { const headline = allChildren[i].querySelector('.mw-headline'); if (headline && WIKI_STOP_HEADINGS.map(h => h.toLowerCase()).includes(headline.textContent.trim().toLowerCase())) { stopIndex = i; break; } }
             const mainContentChildren = stopIndex === -1 ? allChildren : allChildren.slice(0, stopIndex);
             UI.articleGeneratedContent.innerHTML = '';
-            mainContentChildren.forEach(el => { const cleanEl = el.cloneNode(true); cleanEl.querySelectorAll('.mw-editsection, .reference, sup, table, .infobox, style').forEach(e => e.remove()); cleanEl.querySelectorAll('a').forEach(link => link.parentNode.replaceChild(document.createTextNode(link.textContent), link)); UI.articleGeneratedContent.appendChild(cleanEl); });
+            mainContentChildren.forEach(el => { 
+                const cleanEl = el.cloneNode(true); 
+                cleanEl.querySelectorAll('.mw-editsection, .reference, sup, table, [class*="infobox"], style').forEach(e => e.remove()); 
+                cleanEl.querySelectorAll('a').forEach(link => {
+                    if (link.textContent) {
+                        link.parentNode.replaceChild(document.createTextNode(link.textContent), link);
+                    } else {
+                        link.remove();
+                    }
+                }); 
+                UI.articleGeneratedContent.appendChild(cleanEl); 
+            });
             wrapTextNodes(); 
             showLoader(false); 
             window.scrollTo(0, 0);
@@ -309,7 +327,7 @@
                 let thumbnailUrl = null;
                 const pages = imageData.query.pages;
                 const pageId = Object.keys(pages)[0];
-                if (pages[pageId].thumbnail) {
+                if (pages[pageId] && pages[pageId].thumbnail) {
                     thumbnailUrl = pages[pageId].thumbnail.source;
                 }
                 
