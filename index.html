@@ -277,8 +277,51 @@
         const clearError = () => UI.errorDisplay.classList.add('hidden');
         const showLoader = (isLoading) => { UI.loader.style.display = isLoading ? 'flex' : 'none'; UI.articleContainer.style.display = isLoading ? 'none' : 'block'; };
         const performSearch = async () => { clearError(); state.currentSearchTerm = UI.searchInput.value.trim(); state.searchResults = []; state.searchIndex = 0; if (!state.currentSearchTerm) { loadNextArticle(); return; } showLoader(true); const url = `https://${state.currentLanguage}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(state.currentSearchTerm)}&format=json&origin=*`; try { const res = await fetch(url, { headers: WIKI_HEADERS }); if (!res.ok) throw new Error(`API search failed: ${res.status}`); const data = await res.json(); if (!data.query || data.query.search.length === 0) throw new Error("No results found."); state.searchResults = data.query.search.map(item => item.title); loadNextArticle(); } catch (error) { displayError("Search Failed", error.message); showLoader(false); } };
-        const loadNextArticle = async () => { clearError(); showLoader(true); let titleToFetch; if (state.currentSearchTerm && state.searchResults.length > 0) { if (state.searchIndex >= state.searchResults.length) { displayError("End of Results", "You've viewed all search results."); showLoader(false); return; } titleToFetch = state.searchResults[state.searchIndex]; state.searchIndex++; } else { try { const randomUrl = `https://${state.currentLanguage}.wikipedia.org/api/rest_v1/page/random/summary`; const res = await fetch(randomUrl, { headers: WIKI_HEADERS }); if (!res.ok) throw new Error('Could not get a random article.'); titleToFetch = (await res.json()).title; } catch (error) { displayError('Failed to Load', error.message); showLoader(false); return; } } fetchArticleContent(titleToFetch); };
-        const fetchArticleContent = async (title) => { const encodedTitle = encodeURIComponent(title); const summaryUrl = `https://${state.currentLanguage}.wikipedia.org/api/rest_v1/page/summary/${encodedTitle}`; const htmlUrl = `https://${state.currentLanguage}.wikipedia.org/api/rest_v1/page/html/${encodedTitle}`; try { const [summaryRes, htmlRes] = await Promise.all([fetch(summaryUrl, { headers: WIKI_HEADERS }), fetch(htmlUrl, { headers: WIKI_HEADERS })]); if (!summaryRes.ok || !htmlRes.ok) throw new Error(`API fetch failed (Summary: ${summaryRes.status}, HTML: ${htmlRes.status})`); const summaryData = await summaryRes.json(); const htmlText = await htmlRes.text(); const doc = new DOMParser().parseFromString(htmlText, 'text/html'); const contentDOM = doc.querySelector('.mw-parser-output'); if (!contentDOM) throw new Error("Could not parse article content."); UI.articleTitle.textContent = title; addArticleToHistory(title, state.currentLanguage); prepareAndRenderArticle(contentDOM, summaryData.thumbnail?.source); } catch (error) { displayError("Article Load Failed", error.message); showLoader(false); } };
+        const loadNextArticle = async () => { clearError(); showLoader(true); let titleToFetch; if (state.currentSearchTerm && state.searchResults.length > 0) { if (state.searchIndex >= state.searchResults.length) { displayError("End of Results", "You've viewed all search results."); showLoader(false); return; } titleToFetch = state.searchResults[state.searchIndex]; state.searchIndex++; } else { const randomUrl = `https://${state.currentLanguage}.wikipedia.org/w/api.php?action=query&format=json&list=random&rnnamespace=0&rnlimit=1&origin=*`; try { const res = await fetch(randomUrl, { headers: WIKI_HEADERS }); if (!res.ok) throw new Error('Could not get a random article.'); const data = await res.json(); titleToFetch = data.query.random[0].title; } catch (error) { displayError('Failed to Load', error.message); showLoader(false); return; } } fetchArticleContent(titleToFetch); };
+        
+        const fetchArticleContent = async (title) => {
+            const encodedTitle = encodeURIComponent(title.replace(/ /g, '_'));
+            const API_BASE = `https://${state.currentLanguage}.wikipedia.org/w/api.php`;
+            
+            const contentUrl = `${API_BASE}?action=parse&page=${encodedTitle}&prop=text&formatversion=2&format=json&origin=*`;
+            const imageUrl = `${API_BASE}?action=query&titles=${encodedTitle}&prop=pageimages&pithumbsize=500&format=json&origin=*`;
+
+            try {
+                const [contentRes, imageRes] = await Promise.all([
+                    fetch(contentUrl, { headers: WIKI_HEADERS }),
+                    fetch(imageUrl, { headers: WIKI_HEADERS })
+                ]);
+
+                if (!contentRes.ok || !imageRes.ok) {
+                    throw new Error(`API fetch failed (Content: ${contentRes.status}, Image: ${imageRes.status})`);
+                }
+
+                const contentData = await contentRes.json();
+                const imageData = await imageRes.json();
+                
+                if (contentData.error) throw new Error(contentData.error.info);
+
+                const htmlText = contentData.parse.text;
+                const doc = new DOMParser().parseFromString(htmlText, 'text/html');
+                const contentDOM = doc.querySelector('.mw-parser-output');
+                if (!contentDOM) throw new Error("Could not parse article content.");
+                
+                let thumbnailUrl = null;
+                const pages = imageData.query.pages;
+                const pageId = Object.keys(pages)[0];
+                if (pages[pageId].thumbnail) {
+                    thumbnailUrl = pages[pageId].thumbnail.source;
+                }
+                
+                UI.articleTitle.textContent = title;
+                addArticleToHistory(title, state.currentLanguage);
+                prepareAndRenderArticle(contentDOM, thumbnailUrl);
+            } catch (error) {
+                displayError("Article Load Failed", error.message);
+                showLoader(false);
+            }
+        };
+
         const clearHighlights = () => { state.selectionStartNode = null; state.selectionEndNode = null; UI.selectionHighlighter.style.opacity = '0'; };
         const showSelectionPopup = (text) => { const rect = UI.selectionHighlighter.getBoundingClientRect(); UI.selectionPopup.style.left = `${window.scrollX + rect.left + rect.width / 2 - UI.selectionPopup.offsetWidth / 2}px`; UI.selectionPopup.style.top = `${window.scrollY + rect.top - UI.selectionPopup.offsetHeight - 10}px`; UI.selectionPopup.classList.remove('hidden'); requestAnimationFrame(() => { UI.selectionPopup.classList.add('popup-active'); }); const hideAndAction = (action) => { UI.selectionPopup.classList.remove('popup-active'); action(); }; UI.popupTranslateBtn.onclick = (e) => { e.stopPropagation(); hideAndAction(() => showTranslationModal(text)); }; UI.popupSaveBtn.onclick = (e) => { e.stopPropagation(); hideAndAction(() => addVocabWord(text)); }; UI.popupCopyBtn.onclick = (e) => { e.stopPropagation(); navigator.clipboard.writeText(text).then(() => { UI.popupCopyBtn.querySelector('span').textContent = 'done'; setTimeout(() => { UI.popupCopyBtn.querySelector('span').textContent = 'content_copy'; hideAndAction(() => {}); }, 1000); }); }; };
         const handleInteractionEnd = () => { if (!state.isSelecting || !state.selectionStartNode) return; state.isSelecting = false; const selectedText = getSelectedText(); if (selectedText) { showSelectionPopup(selectedText); } };
